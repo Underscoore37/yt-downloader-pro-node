@@ -1,0 +1,19 @@
+{
+  "name": "yt-downloader-pro",
+  "version": "1.0.0",
+  "description": "YT Downloader Pro ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "UNDERSCOORE",
+  "license": "MIT"
+}

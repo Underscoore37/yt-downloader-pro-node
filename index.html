@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YT Downloader Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+
+/* ── Design tokens ──────────────────────────────────── */
+:root{
+  /* Dark theme (default) */
+  --bg:       #0c0c10;
+  --bg1:      #111116;
+  --bg2:      #17171e;
+  --bg3:      #1e1e28;
+  --border:   rgba(255,255,255,.07);
+  --border2:  rgba(255,255,255,.13);
+  --text:     #e4e4ef;
+  --text2:    #8888a6;
+  --text3:    #55556a;
+
+  --red:      #f04040;
+  --red-dim:  rgba(240,64,64,.12);
+  --red-glow: rgba(240,64,64,.25);
+  --amber:    #f59e0b;
+  --amber-dim:rgba(245,158,11,.12);
+  --green:    #22c55e;
+  --green-dim:rgba(34,197,94,.12);
+  --blue:     #60a5fa;
+  --blue-dim: rgba(96,165,250,.12);
+
+  --r:        10px;
+  --r-lg:     16px;
+  --font:     'Geist', sans-serif;
+  --mono:     'DM Mono', monospace;
+  --serif:    'Instrument Serif', serif;
+  --shadow:   0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.25);
+  --trans:    .15s cubic-bezier(.4,0,.2,1);
+}
+
+[data-theme="light"]{
+  --bg:       #f3f3f6;
+  --bg1:      #fafafa;
+  --bg2:      #ffffff;
+  --bg3:      #ededf2;
+  --border:   rgba(0,0,0,.08);
+  --border2:  rgba(0,0,0,.14);
+  --text:     #111118;
+  --text2:    #55556a;
+  --text3:    #9999b2;
+  --shadow:   0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+}
+
+/* ── Base ───────────────────────────────────────────── */
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+/* Subtle grid texture */
+body::before{
+  content:'';
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size:40px 40px;
+  opacity:.4;
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+.shell{
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:240px 1fr;
+  grid-template-rows:56px 1fr;
+  min-height:100vh;
+}
+
+/* ── Topbar ─────────────────────────────────────────── */
+.topbar{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:12px;
+  padding:0 24px;
+  background:var(--bg1);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--serif);
+  font-size:1.15rem;
+  letter-spacing:-.01em;
+  color:var(--text);
+}
+.logo-mark{
+  width:26px;height:26px;
+  background:var(--red);
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);
+  font-size:.7rem;
+  font-weight:500;
+  color:#fff;
+  letter-spacing:0;
+  flex-shrink:0;
+  box-shadow:0 0 16px var(--red-glow);
+}
+.logo-tag{
+  font-size:.65rem;
+  font-family:var(--mono);
+  color:var(--text3);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-left:2px;
+  align-self:flex-end;
+  margin-bottom:2px;
+}
+
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+
+.ws-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:4px 10px 4px 8px;
+  font-size:.68rem;
+  font-family:var(--mono);
+  color:var(--text3);
+  letter-spacing:.04em;
+  transition:all var(--trans);
+}
+.ws-pill.connected{border-color:rgba(34,197,94,.3);color:var(--green);}
+.ws-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--text3);
+  transition:background var(--trans);
+  flex-shrink:0;
+}
+.ws-pill.connected .ws-dot{
+  background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+.icon-btn{
+  width:32px;height:32px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--bg2);
+  color:var(--text2);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;
+  transition:all var(--trans);
+}
+.icon-btn:hover{border-color:var(--border2);color:var(--text);}
+
+.ver-badge{
+  font-size:.65rem;font-family:var(--mono);
+  color:var(--text3);
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:3px 8px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.sidebar{
+  background:var(--bg1);
+  border-right:1px solid var(--border);
+  padding:16px 12px;
+  display:flex;flex-direction:column;
+  gap:2px;
+  overflow-y:auto;
+}
+
+.nav-section{
+  font-size:.6rem;
+  font-family:var(--mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--text3);
+  padding:12px 8px 6px;
+}
+
+.nav-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  color:var(--text2);
+  font-size:.82rem;
+  font-weight:400;
+  transition:all var(--trans);
+  border:1px solid transparent;
+  user-select:none;
+  position:relative;
+}
+.nav-btn:hover{background:var(--bg3);color:var(--text);}
+.nav-btn.active{
+  background:var(--bg3);
+  border-color:var(--border2);
+  color:var(--text);
+  font-weight:500;
+}
+.nav-btn.active::before{
+  content:'';
+  position:absolute;left:-12px;top:50%;transform:translateY(-50%);
+  width:3px;height:16px;
+  background:var(--red);
+  border-radius:0 2px 2px 0;
+  box-shadow:2px 0 8px var(--red-glow);
+}
+.nav-icon{
+  width:18px;height:18px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;
+}
+.nav-badge{
+  margin-left:auto;
+  background:var(--red);
+  color:#fff;
+  font-size:.6rem;
+  font-family:var(--mono);
+  font-weight:500;
+  padding:1px 6px;
+  border-radius:10px;
+  min-width:18px;
+  text-align:center;
+}
+
+.sidebar-footer{
+  margin-top:auto;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.ytdlp-info{
+  font-size:.68rem;font-family:var(--mono);
+  color:var(--text3);
+  padding:4px 8px;
+  margin-bottom:8px;
+}
+.sidebar-update-btn{
+  width:100%;
+  padding:8px 12px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text2);
+  font-family:var(--font);
+  font-size:.75rem;
+  cursor:pointer;
+  transition:all var(--trans);
+}
+.sidebar-update-btn:hover{border-color:var(--border2);color:var(--text);}
+
+/* ── Main content ────────────────────────────────────── */
+.main{
+  padding:28px 32px;
+  overflow-y:auto;
+  max-height:calc(100vh - 56px);
+}
+
+.tab-panel{display:none;animation:fadeUp .2s ease;}
+.tab-panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.page-head{margin-bottom:24px;}
+.page-title{font-family:var(--serif);font-size:1.6rem;letter-spacing:-.02em;color:var(--text);line-height:1.2;}
+.page-sub{font-size:.78rem;color:var(--text3);margin-top:4px;}
+
+/* ── Cards ───────────────────────────────────────────── */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:20px 22px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.card-label{
+  font-size:.65rem;font-family:var(--mono);
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);
+  margin-bottom:14px;
+}
+
+/* ── URL input ───────────────────────────────────────── */
+.url-row{
+  display:flex;gap:8px;
+  margin-bottom:16px;
+}
+.url-input-wrap{
+  flex:1;
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:0 4px 0 14px;
+  transition:border-color var(--trans);
+}
+.url-input-wrap:focus-within{border-color:var(--red);}
+.url-input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);
+  font-family:var(--mono);font-size:.82rem;
+  padding:11px 0;
+}
+.url-input::placeholder{color:var(--text3);}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 16px;
+  border-radius:var(--r);
+  font-family:var(--font);font-weight:500;font-size:.8rem;
+  cursor:pointer;border:1px solid transparent;
+  transition:all var(--trans);
+  white-space:nowrap;
+  letter-spacing:.01em;
+}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-primary:hover{background:#d93535;box-shadow:0 0 20px var(--red-glow);}
+.btn-ghost{background:var(--bg3);color:var(--text2);border-color:var(--border);}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-danger{background:var(--red-dim);color:var(--red);border-color:rgba(240,64,64,.25);}
+.btn-danger:hover{background:rgba(240,64,64,.2);}
+.btn-sm{padding:6px 12px;font-size:.74rem;}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+
+/* ── Mode tabs ───────────────────────────────────────── */
+.mode-tabs{
+  display:flex;gap:4px;
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:3px;
+  margin-bottom:18px;
+  width:fit-content;
+}
+.mode-tab{
+  padding:7px 16px;
+  border-radius:7px;
+  font-size:.78rem;font-weight:500;
+  cursor:pointer;color:var(--text2);
+  transition:all var(--trans);
+  border:1px solid transparent;
+}
+.mode-tab.active{
+  background:var(--bg3);
+  border-color:var(--border2);
+  color:var(--text);
+}
+
+/* ── Form grid ───────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:.67rem;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+
+select,.form-input{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:var(--font);
+  font-size:.82rem;
+  padding:9px 11px;
+  outline:none;
+  transition:border-color var(--trans);
+  width:100%;
+  appearance:none;
+}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2355556a' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  padding-right:28px;
+}
+select:focus,.form-input:focus{border-color:var(--red);}
+select option{background:var(--bg2);}
+
+/* ── Info card ───────────────────────────────────────── */
+.info-card{
+  display:grid;grid-template-columns:120px 1fr;gap:14px;
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:14px;
+  margin-bottom:16px;
+  animation:fadeUp .2s ease;
+}
+.info-thumb{
+  width:120px;height:68px;object-fit:cover;
+  border-radius:6px;background:var(--bg3);
+  flex-shrink:0;
+}
+.info-meta{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.info-title-text{
+  font-weight:500;font-size:.9rem;
+  line-height:1.3;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.info-channel{font-size:.74rem;color:var(--text2);}
+.info-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
+.info-stat{font-size:.68rem;font-family:var(--mono);color:var(--text3);}
+.info-stat b{color:var(--text2);font-weight:500;}
+
+/* ── Progress ────────────────────────────────────────── */
+.progress-track{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin:12px 0 8px;}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--red),var(--amber));
+  border-radius:2px;
+  width:0%;
+  transition:width .3s ease;
+}
+.progress-indeterminate .progress-fill{
+  width:35%!important;
+  animation:indeterminate 1.4s ease-in-out infinite;
+}
+@keyframes indeterminate{
+  0%{margin-left:-35%}
+  100%{margin-left:100%}
+}
+.progress-stats{
+  display:flex;justify-content:space-between;
+  font-size:.68rem;font-family:var(--mono);color:var(--text3);
+}
+
+/* ── Status banner ───────────────────────────────────── */
+.status-banner{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  font-size:.78rem;font-weight:500;
+  margin-bottom:12px;
+  border:1px solid transparent;
+  transition:all var(--trans);
+}
+.status-downloading{background:var(--blue-dim);border-color:rgba(96,165,250,.2);color:var(--blue);}
+.status-done{background:var(--green-dim);border-color:rgba(34,197,94,.2);color:var(--green);}
+.status-error{background:var(--red-dim);border-color:rgba(240,64,64,.2);color:var(--red);}
+.status-icon{font-size:.85rem;}
+
+/* ── Log console ─────────────────────────────────────── */
+.log-box{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px 12px;
+  max-height:140px;overflow-y:auto;
+  font-family:var(--mono);font-size:.68rem;
+  color:var(--text3);line-height:1.7;
+  margin-top:10px;
+}
+.log-info{color:var(--blue);}
+.log-warn{color:var(--amber);}
+.log-err{color:var(--red);}
+.log-ok{color:var(--green);}
+
+/* ── Toggles ─────────────────────────────────────────── */
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;
+  border-bottom:1px solid var(--border);
+}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-left{flex:1;padding-right:16px;}
+.toggle-label{font-size:.82rem;font-weight:500;color:var(--text);}
+.toggle-desc{font-size:.72rem;color:var(--text3);margin-top:2px;line-height:1.4;}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{
+  position:absolute;inset:0;
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  transition:background var(--trans),border-color var(--trans);
+  cursor:pointer;
+}
+.toggle-thumb{
+  position:absolute;
+  width:14px;height:14px;
+  background:#fff;border-radius:50%;
+  top:2px;left:2px;
+  transition:transform var(--trans),box-shadow var(--trans);
+  pointer-events:none;
+}
+.toggle input:checked ~ .toggle-track{background:var(--red);border-color:var(--red);}
+.toggle input:checked ~ .toggle-thumb{transform:translateX(16px);box-shadow:0 0 6px var(--red-glow);}
+
+/* ── History ─────────────────────────────────────────── */
+.history-filters{
+  display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;
+}
+.filter-pill{
+  padding:5px 12px;border-radius:20px;
+  font-size:.72rem;font-weight:500;
+  cursor:pointer;
+  border:1px solid var(--border);
+  background:var(--bg3);color:var(--text2);
+  transition:all var(--trans);
+}
+.filter-pill.active{
+  background:var(--red-dim);border-color:rgba(240,64,64,.3);color:var(--red);
+}
+
+.history-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:12px 14px;
+  margin-bottom:8px;
+  transition:border-color var(--trans);
+}
+.history-item:hover{border-color:var(--border2);}
+.history-thumb{
+  width:56px;height:36px;object-fit:cover;
+  border-radius:4px;background:var(--bg3);flex-shrink:0;
+}
+.history-body{flex:1;min-width:0;}
+.history-title{
+  font-size:.82rem;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.history-meta{
+  font-size:.68rem;font-family:var(--mono);color:var(--text3);margin-top:3px;
+}
+.history-actions{display:flex;gap:6px;flex-shrink:0;}
+
+.badge{
+  display:inline-flex;align-items:center;
+  padding:2px 7px;border-radius:5px;
+  font-size:.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  border:1px solid transparent;
+}
+.badge-video{background:var(--blue-dim);color:var(--blue);border-color:rgba(96,165,250,.2);}
+.badge-audio{background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,.2);}
+.badge-thumbnail{background:var(--amber-dim);color:var(--amber);border-color:rgba(245,158,11,.2);}
+
+/* ── Queue ───────────────────────────────────────────── */
+.queue-drop{
+  border:2px dashed var(--border2);
+  border-radius:var(--r-lg);
+  padding:24px;
+  text-align:center;
+  color:var(--text3);
+  font-size:.82rem;
+  margin-bottom:16px;
+  transition:all var(--trans);
+}
+.queue-drop.drag-over{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.queue-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin-bottom:6px;
+  transition:all var(--trans);
+}
+.queue-item:hover{border-color:var(--border2);}
+.q-num{
+  font-family:var(--mono);font-size:.68rem;
+  background:var(--bg3);color:var(--text3);
+  padding:2px 7px;border-radius:5px;
+  min-width:26px;text-align:center;flex-shrink:0;
+}
+.q-url{
+  flex:1;font-family:var(--mono);font-size:.74rem;
+  color:var(--text2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.q-remove{
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:.8rem;padding:2px 6px;border-radius:5px;
+  transition:all var(--trans);
+}
+.q-remove:hover{background:var(--red-dim);color:var(--red);}
+.queue-status{
+  font-size:.74rem;font-family:var(--mono);color:var(--text3);
+  padding:10px 0;
+  text-align:center;
+}
+
+/* ── Settings sections ───────────────────────────────── */
+.settings-section{margin-bottom:20px;}
+.settings-section-title{
+  font-size:.65rem;font-family:var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--red);
+  margin-bottom:12px;
+}
+
+/* ── Empty state ─────────────────────────────────────── */
+.empty{
+  text-align:center;padding:48px 20px;
+  color:var(--text3);font-size:.82rem;
+}
+.empty-icon{font-size:2rem;margin-bottom:10px;opacity:.25;}
+
+/* ── Post-download actions ───────────────────────────── */
+.post-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+
+/* ── Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media(max-width:720px){
+  .shell{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .info-card{grid-template-columns:1fr;}
+  .info-thumb{width:100%;height:auto;}
+  .main{padding:20px 16px;}
+}
+
+/* ── Animations ──────────────────────────────────────── */
+.spin{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pulse-red{animation:pulseRed 1.5s ease-in-out infinite;}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 var(--red-glow)}50%{box-shadow:0 0 0 6px transparent}}
+
+/* ── Divider ─────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:16px 0;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── Topbar ─────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-mark pulse-red">▶</div>
+      YT Downloader Pro
+      <span class="logo-tag">v4.0</span>
+    </div>
+    <div class="topbar-right">
+      <div class="ws-pill" id="wsPill">
+        <div class="ws-dot" id="wsDot"></div>
+        <span id="wsLabel">connecting</span>
+      </div>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme" onclick="toggleTheme()">☀</button>
+      <span class="ver-badge" id="ytdlpVer">yt-dlp</span>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="nav-section">Main</div>
+    <div class="nav-btn active" data-tab="download">
+      <span class="nav-icon">⬇</span> Download
+    </div>
+    <div class="nav-btn" data-tab="queue">
+      <span class="nav-icon">≡</span> Queue
+      <span class="nav-badge" id="qBadge" style="display:none">0</span>
+    </div>
+
+    <div class="nav-section">Library</div>
+    <div class="nav-btn" data-tab="history">
+      <span class="nav-icon">◷</span> History
+    </div>
+
+    <div class="nav-section">Config</div>
+    <div class="nav-btn" data-tab="settings">
+      <span class="nav-icon">⚙</span> Settings
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="ytdlp-info" id="sidebarVer">checking yt-dlp…</div>
+      <button class="sidebar-update-btn" onclick="updateYtdlp()" id="updateBtn">↑ Update yt-dlp</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ───────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ════ Download tab ════════════════════════════ -->
+    <div class="tab-panel active" id="tab-download">
+      <div class="page-head">
+        <div class="page-title">Download</div>
+        <div class="page-sub">Paste a YouTube URL or playlist link</div>
+      </div>
+
+      <!-- URL bar -->
+      <div class="url-row">
+        <div class="url-input-wrap">
+          <input class="url-input" id="urlInput" type="text"
+            placeholder="https://youtube.com/watch?v=…"
+            onkeydown="if(event.key==='Enter')fetchInfo()"/>
+          <button class="btn btn-ghost btn-sm" onclick="fetchInfo()" id="fetchBtn">Fetch ↗</button>
+        </div>
+        <button class="btn btn-ghost" onclick="addToQueue()" title="Add to queue">+ Queue</button>
+      </div>
+
+      <!-- Info card -->
+      <div id="infoCard" style="display:none" class="info-card">
+        <img id="infoThumb" class="info-thumb" src="" alt=""/>
+        <div class="info-meta">
+          <div class="info-title-text" id="infoTitle"></div>
+          <div class="info-channel" id="infoChannel"></div>
+          <div class="info-stats">
+            <span class="info-stat" id="infoDur"></span>
+            <span class="info-stat" id="infoViews"></span>
+            <span class="info-stat" id="infoLikes"></span>
+            <span class="info-stat" id="infoDate"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode tabs -->
+      <div class="mode-tabs">
+        <div class="mode-tab active" id="modeVideo" onclick="setMode('video')">🎬 Video</div>
+        <div class="mode-tab"        id="modeAudio" onclick="setMode('audio')">🎵 Audio</div>
+        <div class="mode-tab"        id="modeThumb" onclick="setMode('thumbnail')">🖼 Thumbnail</div>
+      </div>
+
+      <!-- Options card -->
+      <div class="card">
+        <div class="card-label">Options</div>
+
+        <!-- Video -->
+        <div id="optsVideo">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Quality</label>
+              <select id="vQuality">
+                <option value="best">Best available</option>
+                <option value="4k">4K — 2160p</option>
+                <option value="1080p" selected>1080p Full HD</option>
+                <option value="720p">720p HD</option>
+                <option value="480p">480p SD</option>
+                <option value="360p">360p — data saver</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Container</label>
+              <select id="vContainer">
+                <option value="mp4">MP4 — universal</option>
+                <option value="mkv">MKV — best quality</option>
+                <option value="webm">WEBM — smaller size</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subtitles</label>
+              <select id="vSubs">
+                <option value="none">None</option>
+                <option value="en">English (embedded)</option>
+                <option value="all">All languages</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Output folder</label>
+              <input class="form-input" type="text" id="vDir" placeholder="~/Downloads"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio -->
+        <div id="optsAudio" style="display:none">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Format</label>
+              <select id="aFormat">
+                <option value="mp3">MP3 — universal</option>
+                <option value="m4a">M4A — AAC</option>
+                <option value="opus">OPUS — best ratio</option>
+                <option value="flac">FLAC — lossless</option>
+                <option value="wav">WAV — uncompressed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quality</label>
+              <select id="aQuality">
+                <option value="best">Best (VBR 0)</option>
+                <option value="high">High (VBR 2)</option>
+                <option value="good">Good (VBR 4)</option>
+                <option value="low">Low (VBR 9)</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Output folder</label>
+              <input class="form-input" type="text" id="aDir" placeholder="~/Music"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thumbnail -->
+        <div id="optsThumb" style="display:none">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Image format</label>
+              <select id="tFormat">
+                <option value="jpg">JPEG</option>
+                <option value="png">PNG — lossless</option>
+                <option value="webp">WEBP — original</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Output folder</label>
+              <input class="form-input" type="text" id="tDir" placeholder="~/Pictures"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="dlBtn" onclick="startDownload()">⬇ Download</button>
+          <button class="btn btn-ghost"   id="cancelBtn" style="display:none;color:var(--red)" onclick="cancelDownload()">✖ Cancel</button>
+        </div>
+      </div>
+
+      <!-- Progress card -->
+      <div class="card" id="progressCard" style="display:none">
+        <div class="card-label">Progress</div>
+        <div class="status-banner" id="statusBanner" style="display:none"></div>
+        <div class="progress-track" id="progressTrack">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="pPct">0%</span>
+          <span id="pSpeed"></span>
+          <span id="pEta"></span>
+          <span id="pSize"></span>
+        </div>
+        <div class="log-box" id="logBox"></div>
+        <div class="post-actions" id="postActions" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="openFolder()">📂 Open folder</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('progressCard').style.display='none'">✕ Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ Queue tab ════════════════════════════════ -->
+    <div class="tab-panel" id="tab-queue">
+      <div class="page-head">
+        <div class="page-title">Queue</div>
+        <div class="page-sub">Batch-download multiple URLs — processed server-side</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Add URLs</div>
+        <div class="url-row">
+          <div class="url-input-wrap">
+            <input class="url-input" id="qUrl" placeholder="https://youtube.com/watch?v=…"
+              onkeydown="if(event.key==='Enter')queueAdd()"/>
+          </div>
+          <button class="btn btn-primary" onclick="queueAdd()">+ Add</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="runQBtn" onclick="runQueue()">▶ Run Queue</button>
+          <button class="btn btn-ghost"   onclick="clearQueue()">🗑 Clear all</button>
+        </div>
+      </div>
+
+      <!-- Queue mode options (shared with download tab) -->
+      <div class="card">
+        <div class="card-label">Queue download mode</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Mode</label>
+            <select id="qMode">
+              <option value="video">Video</option>
+              <option value="audio">Audio</option>
+              <option value="thumbnail">Thumbnail</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quality / Format</label>
+            <select id="qQuality">
+              <option value="best">Best</option>
+              <option value="1080p">1080p</option>
+              <option value="720p">720p</option>
+              <option value="480p">480p</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Output folder</label>
+            <input class="form-input" type="text" id="qDir" placeholder="~/Downloads"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="queue-status" id="queueStatus" style="display:none"></div>
+      <div id="queueList"></div>
+    </div>
+
+    <!-- ════ History tab ══════════════════════════════ -->
+    <div class="tab-panel" id="tab-history">
+      <div class="page-head">
+        <div class="page-title">History</div>
+        <div class="page-sub">Your recent downloads</div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="history-filters">
+          <div class="filter-pill active" data-filter="all" onclick="filterHistory('all',this)">All</div>
+          <div class="filter-pill"        data-filter="video"     onclick="filterHistory('video',this)">Video</div>
+          <div class="filter-pill"        data-filter="audio"     onclick="filterHistory('audio',this)">Audio</div>
+          <div class="filter-pill"        data-filter="thumbnail" onclick="filterHistory('thumbnail',this)">Thumbnail</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="loadHistory()">↺ Refresh</button>
+          <button class="btn btn-danger btn-sm" onclick="clearHistory()">🗑 Clear all</button>
+        </div>
+      </div>
+
+      <div id="historyList"></div>
+    </div>
+
+    <!-- ════ Settings tab ════════════════════════════ -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="page-head">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Saved automatically to <code style="font-family:var(--mono);font-size:.75rem;color:var(--text2)">/.ytdlp-web/settings.json</code></div>
+      </div>
+
+      <div class="card settings-section">
+        <div class="settings-section-title">Defaults</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Default video format</label>
+            <select id="sFmt">
+              <option value="mp4">MP4</option>
+              <option value="mkv">MKV</option>
+              <option value="webm">WEBM</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default audio format</label>
+            <select id="sAFmt">
+              <option value="mp3">MP3</option>
+              <option value="m4a">M4A</option>
+              <option value="opus">OPUS</option>
+              <option value="flac">FLAC</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Default download folder</label>
+            <input class="form-input" type="text" id="sDir" placeholder="~/Downloads"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card settings-section">
+        <div class="settings-section-title">Network</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Rate limit <span style="color:var(--text3)">(e.g. 2M, 500K)</span></label>
+            <input class="form-input" type="text" id="sRate" placeholder="Unlimited"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Retry count</label>
+            <input class="form-input" type="number" id="sRetry" min="1" max="20"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Concurrent downloads</label>
+            <input class="form-input" type="number" id="sConcurrent" min="1" max="5"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card settings-section">
+        <div class="settings-section-title">Features</div>
+        <div class="toggle-row">
+          <div class="toggle-left">
+            <div class="toggle-label">SponsorBlock</div>
+            <div class="toggle-desc">Auto-skip sponsors, intros and outros</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sSponsor"/>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-left">
+            <div class="toggle-label">Download archive</div>
+            <div class="toggle-desc">Skip already-downloaded videos automatically</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sArchive"/>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-left">
+            <div class="toggle-label">Embed subtitles</div>
+            <div class="toggle-desc">Auto-embed English subtitles in video files</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sEmbedSubs"/>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-left">
+            <div class="toggle-label">Embed chapters</div>
+            <div class="toggle-desc">Add chapter markers to downloaded files</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sEmbedChapters"/>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-left">
+            <div class="toggle-label">Use cookies</div>
+            <div class="toggle-desc">For age-restricted or private videos — place cookies.txt in <code style="font-size:.72rem;color:var(--text2)">/.ytdlp-web/</code></div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="sCookies"/>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Save settings</button>
+    </div>
+
+  </main>
+</div>
+
+<script>
+"use strict";
+// ── State ──────────────────────────────────────────────
+let ws             = null;
+let settings       = {};
+let currentMode    = "video";
+let currentDlId    = null;
+let lastOutputDir  = "";
+let queueItems     = [];        // [{url, title}]
+let historyAll     = [];
+let historyFilter  = "all";
+
+// ── WebSocket ──────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}`);
+
+  ws.onopen = () => {
+    setWsState(true);
+    fetchYtdlpVersion();
+  };
+  ws.onclose = () => {
+    setWsState(false);
+    setTimeout(connectWS, 2000);
+  };
+  ws.onmessage = ({ data }) => {
+    try { handleMsg(JSON.parse(data)); } catch {}
+  };
+  ws.onerror = () => {};
+}
+
+function setWsState(connected) {
+  const pill = document.getElementById("wsPill");
+  const dot  = document.getElementById("wsDot");
+  const lbl  = document.getElementById("wsLabel");
+  if (connected) {
+    pill.classList.add("connected");
+    dot.style.background  = "var(--green)";
+    dot.style.boxShadow   = "0 0 6px var(--green)";
+    lbl.textContent       = "connected";
+  } else {
+    pill.classList.remove("connected");
+    dot.style.background  = "var(--text3)";
+    dot.style.boxShadow   = "none";
+    lbl.textContent       = "reconnecting";
+  }
+}
+
+function wsSend(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+
+// ── WS message handler ─────────────────────────────────
+function handleMsg(msg) {
+  const { type, id } = msg;
+
+  if (type === "download:start") {
+    showProgress(true);
+    setStatus("downloading", "⟳", "Starting download…");
+    setIndeterminate(true);
+    return;
+  }
+  if (type === "download:progress") {
+    setIndeterminate(false);
+    document.getElementById("progressFill").style.width = msg.percent + "%";
+    document.getElementById("pPct").textContent   = msg.percent.toFixed(1) + "%";
+    document.getElementById("pSpeed").textContent = msg.speed   || "";
+    document.getElementById("pEta").textContent   = msg.eta ? "ETA " + msg.eta : "";
+    document.getElementById("pSize").textContent  = msg.size    || "";
+    return;
+  }
+  if (type === "download:log") {
+    appendLog(msg.message, msg.level);
+    return;
+  }
+  if (type === "download:complete") {
+    setIndeterminate(false);
+    document.getElementById("progressFill").style.width = "100%";
+    document.getElementById("pPct").textContent = "100%";
+    setStatus("done", "✔", "Download complete!");
+    resetDlBtn();
+    document.getElementById("postActions").style.display = "flex";
+    loadHistory();
+    return;
+  }
+  if (type === "download:error") {
+    setIndeterminate(false);
+    setStatus("error", "✖", msg.message || "Download failed");
+    if (msg.detail) appendLog(msg.detail, "error");
+    resetDlBtn();
+    return;
+  }
+  if (type === "download:cancelled") {
+    setIndeterminate(false);
+    setStatus("error", "✖", "Cancelled.");
+    resetDlBtn();
+    return;
+  }
+  if (type === "queue:done") {
+    const qs = document.getElementById("queueStatus");
+    qs.textContent = "✔ Queue finished!";
+    qs.style.color = "var(--green)";
+    document.getElementById("runQBtn").disabled = false;
+    loadHistory();
+    return;
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────
+document.querySelectorAll(".nav-btn[data-tab]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "history") loadHistory();
+  });
+});
+
+// ── Theme ──────────────────────────────────────────────
+function toggleTheme() {
+  const html  = document.documentElement;
+  const isDark = html.getAttribute("data-theme") === "dark";
+  html.setAttribute("data-theme", isDark ? "light" : "dark");
+  document.getElementById("themeBtn").textContent = isDark ? "☾" : "☀";
+  localStorage.setItem("theme", isDark ? "light" : "dark");
+}
+(function initTheme() {
+  const saved = localStorage.getItem("theme") || "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+  document.getElementById("themeBtn").textContent = saved === "light" ? "☾" : "☀";
+})();
+
+// ── Mode selector ──────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  ["video","audio","thumbnail"].forEach(m => {
+    const key = m.charAt(0).toUpperCase() + m.slice(1);
+    document.getElementById("opts" + key).style.display  = m === mode ? "block" : "none";
+    document.getElementById("mode" + key).classList.toggle("active", m === mode);
+  });
+}
+
+// ── Fetch video info ───────────────────────────────────
+async function fetchInfo() {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) return;
+  const btn = document.getElementById("fetchBtn");
+  btn.textContent = "…";
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/info?url=" + encodeURIComponent(url));
+    const d   = await res.json();
+    if (d.error) { showToast("Error: " + d.error, "error"); return; }
+
+    document.getElementById("infoCard").style.display = "grid";
+    document.getElementById("infoThumb").src          = d.thumbnail || "";
+    document.getElementById("infoTitle").textContent  = d.title     || "Unknown title";
+    document.getElementById("infoChannel").textContent= d.uploader  || "";
+
+    const dur = d.duration;
+    const h = Math.floor(dur/3600), m = Math.floor((dur%3600)/60), s = dur%60;
+    document.getElementById("infoDur").innerHTML   = `<b>${h?h+":":""}${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}</b>`;
+    document.getElementById("infoViews").innerHTML = d.views ? `<b>${d.views.toLocaleString()}</b> views` : "";
+    document.getElementById("infoLikes").innerHTML = d.likes ? `<b>${d.likes.toLocaleString()}</b> likes` : "";
+    if (d.upload_date) {
+      const dt = d.upload_date;
+      document.getElementById("infoDate").innerHTML = `<b>${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}</b>`;
+    }
+  } catch { showToast("Could not fetch video info", "error"); }
+  finally { btn.textContent = "Fetch ↗"; btn.disabled = false; }
+}
+
+// ── Download ───────────────────────────────────────────
+function getOptions() {
+  if (currentMode === "video") return {
+    quality:   document.getElementById("vQuality").value,
+    container: document.getElementById("vContainer").value,
+    subs:      document.getElementById("vSubs").value,
+    outputDir: document.getElementById("vDir").value || settings.defaultDir,
+    title:     document.getElementById("infoTitle").textContent,
+  };
+  if (currentMode === "audio") return {
+    format:    document.getElementById("aFormat").value,
+    quality:   document.getElementById("aQuality").value,
+    outputDir: document.getElementById("aDir").value || settings.defaultDir,
+    title:     document.getElementById("infoTitle").textContent,
+  };
+  return {
+    format:    document.getElementById("tFormat").value,
+    outputDir: document.getElementById("tDir").value || settings.defaultDir,
+    title:     document.getElementById("infoTitle").textContent,
+  };
+}
+
+function startDownload() {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) { showToast("Enter a URL first.", "error"); return; }
+
+  const options   = getOptions();
+  lastOutputDir   = options.outputDir;
+
+  clearLog();
+  showProgress(true);
+  setStatus("downloading", "⟳", "Connecting…");
+  document.getElementById("dlBtn").disabled     = true;
+  document.getElementById("cancelBtn").style.display = "";
+  document.getElementById("postActions").style.display = "none";
+
+  wsSend({ type: "download", mode: currentMode, url, options });
+}
+
+async function cancelDownload() {
+  if (currentDlId !== null) {
+    await fetch("/api/cancel/" + currentDlId, { method: "POST" });
+  }
+}
+
+function resetDlBtn() {
+  document.getElementById("dlBtn").disabled     = false;
+  document.getElementById("cancelBtn").style.display = "none";
+  currentDlId = null;
+}
+
+// ── Progress UI ────────────────────────────────────────
+function showProgress(show) {
+  const card = document.getElementById("progressCard");
+  card.style.display = show ? "block" : "none";
+  if (show) {
+    document.getElementById("progressFill").style.width = "0%";
+    document.getElementById("pPct").textContent   = "0%";
+    document.getElementById("pSpeed").textContent = "";
+    document.getElementById("pEta").textContent   = "";
+    document.getElementById("pSize").textContent  = "";
+  }
+}
+
+function setIndeterminate(on) {
+  document.getElementById("progressTrack").classList.toggle("progress-indeterminate", on);
+}
+
+function setStatus(type, icon, msg) {
+  const b = document.getElementById("statusBanner");
+  b.style.display = "";
+  b.className     = "status-banner status-" + type;
+  b.innerHTML     = `<span class="status-icon">${icon}</span><span>${msg}</span>`;
+}
+
+function appendLog(line, level) {
+  const box = document.getElementById("logBox");
+  const d   = document.createElement("div");
+  const cls = level === "error" ? "log-err"
+            : level === "warn"  ? "log-warn"
+            : /\[download\]|\[ffmpeg\]/.test(line) ? "log-info"
+            : level === "ok"    ? "log-ok" : "";
+  if (cls) d.className = cls;
+  d.textContent = line;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById("logBox").innerHTML = "";
+  const b = document.getElementById("statusBanner");
+  b.style.display = "none";
+  document.getElementById("postActions").style.display = "none";
+}
+
+function openFolder() {
+  fetch("/api/open-folder", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ dir: lastOutputDir }),
+  });
+}
+
+// ── Queue ──────────────────────────────────────────────
+function queueAdd() {
+  const raw = document.getElementById("qUrl").value.trim();
+  if (!raw) return;
+  // Support paste of multiple lines
+  const urls = raw.split(/\s+/).filter(u => u.startsWith("http"));
+  if (!urls.length) urls.push(raw);
+  urls.forEach(url => {
+    if (!queueItems.find(i => i.url === url))
+      queueItems.push({ url, title: url });
+  });
+  document.getElementById("qUrl").value = "";
+  renderQueue();
+}
+
+function addToQueue() {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) return;
+  if (!queueItems.find(i => i.url === url)) {
+    queueItems.push({
+      url,
+      title: document.getElementById("infoTitle").textContent || url,
+    });
+    renderQueue();
+  }
+  showToast("Added to queue", "ok");
+}
+
+function queueRemove(idx) { queueItems.splice(idx, 1); renderQueue(); }
+function clearQueue()     { queueItems = []; renderQueue(); }
+
+function runQueue() {
+  if (!queueItems.length) { showToast("Queue is empty", "error"); return; }
+
+  const mode      = document.getElementById("qMode").value;
+  const quality   = document.getElementById("qQuality").value;
+  const outputDir = document.getElementById("qDir").value || settings.defaultDir;
+
+  const qs = document.getElementById("queueStatus");
+  qs.style.display = "";
+  qs.style.color   = "var(--text3)";
+  qs.textContent   = `Running ${queueItems.length} item(s)…`;
+
+  document.getElementById("runQBtn").disabled = true;
+
+  // Server-side queue: send all items at once, server sequences them
+  wsSend({
+    type:    "queue:run",
+    items:   [...queueItems],
+    mode,
+    options: { quality, outputDir },
+  });
+
+  lastOutputDir = outputDir;
+}
+
+function renderQueue() {
+  const list  = document.getElementById("queueList");
+  const badge = document.getElementById("qBadge");
+
+  if (!queueItems.length) {
+    badge.style.display = "none";
+    list.innerHTML = `<div class="empty"><div class="empty-icon">≡</div>Queue is empty. Paste URLs above.</div>`;
+    return;
+  }
+
+  badge.style.display = "";
+  badge.textContent   = queueItems.length;
+
+  list.innerHTML = queueItems.map((item, i) => `
+    <div class="queue-item">
+      <span class="q-num">${i + 1}</span>
+      <span class="q-url" title="${item.url}">${item.title !== item.url ? item.title + "  —  " : ""}${item.url}</span>
+      <button class="q-remove" onclick="queueRemove(${i})">✕</button>
+    </div>
+  `).join("");
+}
+
+// ── History ────────────────────────────────────────────
+async function loadHistory() {
+  const res = await fetch("/api/history");
+  historyAll = await res.json();
+  renderHistory();
+}
+
+function filterHistory(f, el) {
+  historyFilter = f;
+  document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+  el.classList.add("active");
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  const items = historyFilter === "all"
+    ? historyAll
+    : historyAll.filter(i => i.mode === historyFilter);
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">◷</div>No downloads yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(item => `
+    <div class="history-item">
+      <div class="history-body">
+        <div class="history-title">${escHtml(item.title || item.url)}</div>
+        <div class="history-meta">
+          ${new Date(item.date).toLocaleString()} ·
+          ${escHtml(item.dir || "")} ·
+          <span class="badge badge-${item.mode}">${item.mode}</span>
+        </div>
+      </div>
+      <div class="history-actions">
+        <button class="btn btn-ghost btn-sm" onclick="redownload('${escHtml(item.url)}')">↺</button>
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteHistoryItem(${item.id})">✕</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function clearHistory() {
+  if (!confirm("Clear all download history?")) return;
+  await fetch("/api/history", { method: "DELETE" });
+  historyAll = [];
+  renderHistory();
+}
+
+async function deleteHistoryItem(id) {
+  await fetch("/api/history/" + id, { method: "DELETE" });
+  historyAll = historyAll.filter(i => i.id !== id);
+  renderHistory();
+}
+
+function redownload(url) {
+  document.getElementById("urlInput").value = url;
+  document.querySelector('.nav-btn[data-tab="download"]').click();
+  fetchInfo();
+}
+
+// ── Settings ───────────────────────────────────────────
+async function loadSettings() {
+  const res = await fetch("/api/settings");
+  settings  = await res.json();
+
+  document.getElementById("sFmt").value       = settings.defaultFormat || "mp4";
+  document.getElementById("sAFmt").value      = settings.defaultAudioFormat || "mp3";
+  document.getElementById("sDir").value       = settings.defaultDir || "";
+  document.getElementById("sRate").value      = settings.rateLimit || "";
+  document.getElementById("sRetry").value     = settings.retries || 3;
+  document.getElementById("sConcurrent").value= settings.concurrent || 2;
+  document.getElementById("sSponsor").checked = !!settings.sponsorblock;
+  document.getElementById("sArchive").checked = !!settings.useArchive;
+  document.getElementById("sEmbedSubs").checked    = !!settings.embedSubs;
+  document.getElementById("sEmbedChapters").checked= !!settings.embedChapters;
+  document.getElementById("sCookies").checked = !!settings.useCookies;
+
+  // Pre-fill output dirs
+  const dir = settings.defaultDir || "";
+  document.getElementById("vDir").value  = dir;
+  document.getElementById("aDir").value  = dir;
+  document.getElementById("tDir").value  = dir;
+  document.getElementById("qDir").value  = dir;
+}
+
+async function saveSettings() {
+  const payload = {
+    defaultFormat:      document.getElementById("sFmt").value,
+    defaultAudioFormat: document.getElementById("sAFmt").value,
+    defaultDir:         document.getElementById("sDir").value,
+    rateLimit:          document.getElementById("sRate").value,
+    retries:            Number(document.getElementById("sRetry").value),
+    concurrent:         Number(document.getElementById("sConcurrent").value),
+    sponsorblock:       document.getElementById("sSponsor").checked,
+    useArchive:         document.getElementById("sArchive").checked,
+    embedSubs:          document.getElementById("sEmbedSubs").checked,
+    embedChapters:      document.getElementById("sEmbedChapters").checked,
+    useCookies:         document.getElementById("sCookies").checked,
+  };
+  const res = await fetch("/api/settings", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload),
+  });
+  settings = await res.json();
+  showToast("Settings saved", "ok");
+}
+
+// ── yt-dlp version ─────────────────────────────────────
+async function fetchYtdlpVersion() {
+  const res = await fetch("/api/ytdlp-version");
+  const d   = await res.json();
+  const ver = "yt-dlp " + d.version;
+  document.getElementById("sidebarVer").textContent = ver;
+  document.getElementById("ytdlpVer").textContent   = ver;
+}
+
+async function updateYtdlp() {
+  const btn = document.getElementById("updateBtn");
+  btn.textContent = "Updating…";
+  btn.disabled    = true;
+  const res = await fetch("/api/update-ytdlp", { method: "POST" });
+  const d   = await res.json();
+  if (d.version) {
+    document.getElementById("sidebarVer").textContent = "yt-dlp " + d.version;
+    document.getElementById("ytdlpVer").textContent   = "yt-dlp " + d.version;
+    showToast("Updated to " + d.version, "ok");
+  } else {
+    showToast("Update failed", "error");
+  }
+  btn.textContent = "↑ Update yt-dlp";
+  btn.disabled    = false;
+}
+
+// ── Toast notifications ────────────────────────────────
+function showToast(msg, type = "ok") {
+  const t = document.createElement("div");
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:"fixed", bottom:"24px", right:"24px",
+    padding:"10px 16px",
+    background: type === "error" ? "var(--red-dim)" : "var(--green-dim)",
+    color:       type === "error" ? "var(--red)"    : "var(--green)",
+    border:     `1px solid ${type === "error" ? "rgba(240,64,64,.25)" : "rgba(34,197,94,.25)"}`,
+    borderRadius:"10px",
+    fontSize:".78rem",fontFamily:"var(--font)",fontWeight:"500",
+    zIndex:"9999",
+    animation:"fadeUp .2s ease",
+    backdropFilter:"blur(8px)",
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── Utils ──────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+// ── Init ───────────────────────────────────────────────
+connectWS();
+loadSettings();
+renderQueue();
+</script>
+</body>
+</html>
