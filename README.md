@@ -36,8 +36,8 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/Nepaligamingcommunity/yt-downloader-pro.git
-cd yt-downloader-pro
+git clone https://github.com/Nepaligamingcommunity/yt-downloader-pro-node.git
+cd yt-downloader-pro-node
 
 # Install dependencies
 npm install
@@ -57,7 +57,7 @@ http://localhost:3000
 ## 📁 Project Structure
 
 ```
-yt-downloader-pro/
+yt-downloader-pro-node/
 ├── server.js
 ├── index.html
 ├── package.json
