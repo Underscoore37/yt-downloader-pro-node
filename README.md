@@ -36,7 +36,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/Nepaligamingcommunity/yt-downloader-pro-node.git
+git clone https://github.com/Underscoore37/yt-downloader-pro-node.git
 cd yt-downloader-pro-node
 
 # Install dependencies
