@@ -932,7 +932,7 @@ select option{background:var(--bg2);}
     <div class="logo">
       <div class="logo-mark pulse-red">▶</div>
       YT Downloader Pro
-      <span class="logo-tag">v4.0</span>
+      <span class="logo-tag">v2.0.0</span>
     </div>
     <div class="topbar-right">
       <div class="ws-pill" id="wsPill">
@@ -1015,6 +1015,15 @@ select option{background:var(--bg2);}
         <div class="mode-tab active" id="modeVideo" onclick="setMode('video')">🎬 Video</div>
         <div class="mode-tab"        id="modeAudio" onclick="setMode('audio')">🎵 Audio</div>
         <div class="mode-tab"        id="modeThumb" onclick="setMode('thumbnail')">🖼 Thumbnail</div>
+      </div>
+
+      <!-- Playlist toggle -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="font-size:.75rem;font-family:var(--mono);color:var(--text3);letter-spacing:.06em;text-transform:uppercase;">Download as</span>
+        <div class="mode-tabs" style="margin-bottom:0">
+          <div class="mode-tab active" id="plSingle"   onclick="setPlaylistMode('video')">▶ Single video</div>
+          <div class="mode-tab"        id="plPlaylist" onclick="setPlaylistMode('playlist')">≡ Full playlist</div>
+        </div>
       </div>
 
       <!-- Options card -->
@@ -1439,14 +1448,15 @@ select option{background:var(--bg2);}
 <script>
 "use strict";
 // ── State ──────────────────────────────────────────────
-let ws             = null;
-let settings       = {};
-let currentMode    = "video";
-let currentDlId    = null;
-let lastOutputDir  = "";
-let queueItems     = [];        // [{url, title}]
-let historyAll     = [];
-let historyFilter  = "all";
+let ws               = null;
+let settings         = {};
+let currentMode      = "video";
+let currentPlaylistMode = "video";   // "video" = single, "playlist" = full playlist
+let currentDlId      = null;
+let lastOutputDir    = "";
+let queueItems       = [];        // [{url, title}]
+let historyAll       = [];
+let historyFilter    = "all";
 
 // ── WebSocket ──────────────────────────────────────────
 function connectWS() {
@@ -1492,6 +1502,7 @@ function handleMsg(msg) {
   const { type, id } = msg;
 
   if (type === "download:start") {
+    currentDlId = id;            // ← capture the server-assigned download ID
     showProgress(true);
     setStatus("downloading", "⟳", "Starting download…");
     setIndeterminate(true);
@@ -1569,6 +1580,13 @@ function toggleTheme() {
   document.getElementById("themeBtn").textContent = saved === "light" ? "☾" : "☀";
 })();
 
+// ── Playlist mode selector ─────────────────────────────
+function setPlaylistMode(mode) {
+  currentPlaylistMode = mode;
+  document.getElementById("plSingle").classList.toggle("active",   mode === "video");
+  document.getElementById("plPlaylist").classList.toggle("active", mode === "playlist");
+}
+
 // ── Mode selector ──────────────────────────────────────
 function setMode(mode) {
   currentMode = mode;
@@ -1612,22 +1630,25 @@ async function fetchInfo() {
 // ── Download ───────────────────────────────────────────
 function getOptions() {
   if (currentMode === "video") return {
-    quality:   document.getElementById("vQuality").value,
-    container: document.getElementById("vContainer").value,
-    subs:      document.getElementById("vSubs").value,
-    outputDir: document.getElementById("vDir").value || settings.defaultDir,
-    title:     document.getElementById("infoTitle").textContent,
+    quality:      document.getElementById("vQuality").value,
+    container:    document.getElementById("vContainer").value,
+    subs:         document.getElementById("vSubs").value,
+    outputDir:    document.getElementById("vDir").value || settings.defaultDir,
+    title:        document.getElementById("infoTitle").textContent,
+    playlistMode: currentPlaylistMode,
   };
   if (currentMode === "audio") return {
-    format:    document.getElementById("aFormat").value,
-    quality:   document.getElementById("aQuality").value,
-    outputDir: document.getElementById("aDir").value || settings.defaultDir,
-    title:     document.getElementById("infoTitle").textContent,
+    format:       document.getElementById("aFormat").value,
+    quality:      document.getElementById("aQuality").value,
+    outputDir:    document.getElementById("aDir").value || settings.defaultDir,
+    title:        document.getElementById("infoTitle").textContent,
+    playlistMode: currentPlaylistMode,
   };
   return {
-    format:    document.getElementById("tFormat").value,
-    outputDir: document.getElementById("tDir").value || settings.defaultDir,
-    title:     document.getElementById("infoTitle").textContent,
+    format:       document.getElementById("tFormat").value,
+    outputDir:    document.getElementById("tDir").value || settings.defaultDir,
+    title:        document.getElementById("infoTitle").textContent,
+    playlistMode: currentPlaylistMode,
   };
 }
 
@@ -1649,9 +1670,26 @@ function startDownload() {
 }
 
 async function cancelDownload() {
-  if (currentDlId !== null) {
-    await fetch("/api/cancel/" + currentDlId, { method: "POST" });
+  // Immediately update UI so the button feels responsive
+  setStatus("error", "✖", "Cancelling…");
+  document.getElementById("cancelBtn").disabled = true;
+
+  const idToCancel = currentDlId;
+  if (idToCancel !== null) {
+    try {
+      const res = await fetch("/api/cancel/" + idToCancel, { method: "POST" });
+      if (!res.ok) {
+        // Server said not found — download may have already finished
+        setStatus("error", "✖", "Could not cancel (already done?)");
+      }
+    } catch {
+      setStatus("error", "✖", "Cancel request failed");
+    }
   }
+
+  // Reset UI regardless — if the WS cancelled event also arrives it's harmless
+  resetDlBtn();
+  setIndeterminate(false);
 }
 
 function resetDlBtn() {
